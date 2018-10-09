@@ -1,6 +1,8 @@
 # Integrated Gradients
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)  
 This is the pytorch implementation of ["Axiomatic Attribution for Deep Networks"](https://arxiv.org/pdf/1703.01365.pdf). The original tensorflow version could be found [here](https://github.com/ankurtaly/Integrated-Gradients).
+## Acknowledgement
+- [ankurtaly's tensorflow version](https://github.com/ankurtaly/Integrated-Gradients)
 ## Requirements
 - python-3.5.2
 - pytorch-0.4.1
