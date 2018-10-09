@@ -5,6 +5,9 @@ This is the pytorch implementation of ["Axiomatic Attribution for Deep Networks"
 - python-3.5.2
 - pytorch-0.4.1
 - opencv-python
+## TODO List
+- [ ] add more functions as the original code.
+- [ ] try to finetune the results, make them close to the original paper.
 ## Instructions
 **Highly recommend to use GPU to accelerate the computation.** If you use CPU, I will recommend to select some small networks, such as `resnet18`. You also need to put your images under `examples/`.
 ### Lists of networks that support (of course, you can add any networks by yourself)
