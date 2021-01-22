@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from utils import pre_processing
 
 # integrated gradients
 def integrated_gradients(inputs, model, target_label_idx, predict_and_gradients, baseline, steps=50, cuda=False):
@@ -10,7 +11,9 @@ def integrated_gradients(inputs, model, target_label_idx, predict_and_gradients,
     grads, _ = predict_and_gradients(scaled_inputs, model, target_label_idx, cuda)
     avg_grads = np.average(grads[:-1], axis=0)
     avg_grads = np.transpose(avg_grads, (1, 2, 0))
-    integrated_grad = (inputs - baseline) * avg_grads
+    delta_X = (pre_processing(inputs, cuda) - pre_processing(baseline, cuda)).detach().squeeze(0).cpu().numpy()
+    delta_X = np.transpose(delta_X, (1, 2, 0))
+    integrated_grad = delta_X * avg_grads
     return integrated_grad
 
 def random_baseline_integrated_gradients(inputs, model, target_label_idx, predict_and_gradients, steps, num_random_trials, cuda):
