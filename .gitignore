@@ -113,4 +113,10 @@ venv.bak/
 
 *.log
 
+#directories
+/figures
+/results
 
+#images
+*.png
+*.jpg

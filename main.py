@@ -6,13 +6,23 @@ import torch.nn.functional as F
 from utils import calculate_outputs_and_gradients, generate_entrie_images
 from integrated_gradients import random_baseline_integrated_gradients
 from visualization import visualize
+from pathlib import Path
 import argparse
 import os
+import sys
+import matplotlib.pyplot as plt 
+
+# sys.path.append("/content/adversarial_project/integrated-gradient-pytorch") #to work in colab
+directorio = os.path.join(Path.home(), "adversarial_project/integrated-gradient-pytorch")
+sys.path.append(directorio) #para poder acceder a los ficheros como librerías (recuerda añadir __init__.py)
+os.chdir(directorio) #para fijar este directorio como el directorio de trabajo
+
+# python main.py --cuda --model-type='inception' --img='prueba.jpg'
 
 parser = argparse.ArgumentParser(description='integrated-gradients')
 parser.add_argument('--cuda', action='store_true', help='if use the cuda to do the accelartion')
 parser.add_argument('--model-type', type=str, default='inception', help='the type of network')
-parser.add_argument('--img', type=str, default='01.jpg', help='the images name')
+parser.add_argument('--img', type=str, default='prueba.jpg', help='the images name')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -35,7 +45,8 @@ if __name__ == '__main__':
     if args.cuda:
         model.cuda()
     # read the image
-    img = cv2.imread('examples/' + args.img)
+    img = cv2.imread('./examples/' + args.img)
+    
     if args.model_type == 'inception':
         # the input image's size is different
         img = cv2.resize(img, (299, 299))
@@ -56,3 +67,5 @@ if __name__ == '__main__':
     output_img = generate_entrie_images(img, img_gradient, img_gradient_overlay, img_integrated_gradient, \
                                         img_integrated_gradient_overlay)
     cv2.imwrite('results/' + args.model_type + '/' + args.img, np.uint8(output_img))
+
+    
