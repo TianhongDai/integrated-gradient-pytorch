@@ -11,9 +11,12 @@ import argparse
 import os
 import sys
 import matplotlib.pyplot as plt 
+from lit_regressor import LitRegressor
+from config import CONFIG, Dataset,TargetModel
+# from torchsummary import summary
 
 # sys.path.append("/content/adversarial_project/integrated-gradient-pytorch") #to work in colab
-directorio = os.path.join(Path.home(), "adversarial_project/integrated-gradient-pytorch")
+directorio = os.path.join(Path.home(), "integrated-gradient-pytorch")
 sys.path.append(directorio) #para poder acceder a los ficheros como librerías (recuerda añadir __init__.py)
 os.chdir(directorio) #para fijar este directorio como el directorio de trabajo
 
@@ -21,7 +24,7 @@ os.chdir(directorio) #para fijar este directorio como el directorio de trabajo
 
 parser = argparse.ArgumentParser(description='integrated-gradients')
 parser.add_argument('--cuda', action='store_true', help='if use the cuda to do the accelartion')
-parser.add_argument('--model-type', type=str, default='inception', help='the type of network')
+parser.add_argument('--model-type', type=str, default='example', help='the type of network')
 parser.add_argument('--img', type=str, default='prueba.jpg', help='the images name')
 
 if __name__ == '__main__':
@@ -41,9 +44,33 @@ if __name__ == '__main__':
         model = models.resnet18(pretrained=True)
     elif args.model_type == 'vgg19':
         model = models.vgg19_bn(pretrained=True)
+    elif args.model_type == 'example':
+        config = CONFIG
+        model=LitRegressor(
+            experiment_name=config.experiment_name,
+            lr=config.lr,
+            optim=config.optim_name,
+            in_chans=config.in_chans,
+            features_out_layer1=config.features_out_layer1,
+            features_out_layer2=config.features_out_layer2,
+            features_out_layer3=config.features_out_layer3,
+            tanh1=config.tanh1,
+            tanh2=config.tanh2,
+            dropout1=config.dropout1,
+            dropout2=config.dropout2,
+            is_mlp_preconfig=config.is_mlp_preconfig,
+            num_fold=0,
+            num_repeat=0
+                    )
+        model = model.load_from_checkpoint(checkpoint_path='models/example.ckpt', in_chans = config.in_chans, experiment_name = config.experiment_name)
+    print(model)
     model.eval()
+
+    sys.exit()
+
     if args.cuda:
         model.cuda()
+        
     # read the image
     img = cv2.imread('./examples/' + args.img)
     

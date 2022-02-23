@@ -116,6 +116,7 @@ venv.bak/
 #directories
 /figures
 /results
+/models
 
 #images
 *.png
