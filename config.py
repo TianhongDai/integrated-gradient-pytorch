@@ -88,7 +88,7 @@ class CONFIG(object):
     is_mlp_preconfig:bool=True
     
     ##data
-    path_data:str=r"./openml/data"
+    path_data:str=r"../adversarial_project/openml/data"
     
     gpu0:bool=False  
     gpu1:bool=True

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torchvision import models
+from torchvision.utils import save_image
 import cv2
 import torch.nn.functional as F
 from utils import calculate_outputs_and_gradients, generate_entrie_images
@@ -13,6 +14,7 @@ import sys
 import matplotlib.pyplot as plt 
 from lit_regressor import LitRegressor
 from config import CONFIG, Dataset,TargetModel
+from datamodule import DataModule
 # from torchsummary import summary
 
 # sys.path.append("/content/adversarial_project/integrated-gradient-pytorch") #to work in colab
@@ -25,7 +27,7 @@ os.chdir(directorio) #para fijar este directorio como el directorio de trabajo
 parser = argparse.ArgumentParser(description='integrated-gradients')
 parser.add_argument('--cuda', action='store_true', help='if use the cuda to do the accelartion')
 parser.add_argument('--model-type', type=str, default='example', help='the type of network')
-parser.add_argument('--img', type=str, default='prueba.jpg', help='the images name')
+parser.add_argument('--img', type=str, default='mnist784_ref', help='the images name')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -63,22 +65,45 @@ if __name__ == '__main__':
             num_repeat=0
                     )
         model = model.load_from_checkpoint(checkpoint_path='models/example.ckpt', in_chans = config.in_chans, experiment_name = config.experiment_name)
-    print(model)
+    
     model.eval()
 
+    lista = [name for name, member in Dataset.__members__.items()]
+
+    if args.img in lista:
+        dataset_enum = Dataset[args.img]
+        data_module = DataModule(os.path.join(config.path_data, dataset_enum.value), batch_size = config.batch_size, 
+            num_workers = config.NUM_WORKERS, 
+            pin_memory=True, 
+            dataset = dataset_enum)
+        data_module.setup()
+
+        dataset = data_module.fulldataset
+        print(dataset[1][0])
+        save_image(dataset[1][0], "salida.png")
+        print("Salida con éxito")
+
+    else :
+        # read the image
+        img = cv2.imread('./examples/' + args.img)
+        if args.model_type == 'inception':
+            # the input image's size is different
+            img = cv2.resize(img, (299, 299))
+        img = img.astype(np.float32) 
+        img = img[:, :, (2, 1, 0)]
+ 
+        print("Salida fracaso.")
+    
     sys.exit()
 
     if args.cuda:
         model.cuda()
         
-    # read the image
-    img = cv2.imread('./examples/' + args.img)
     
-    if args.model_type == 'inception':
-        # the input image's size is different
-        img = cv2.resize(img, (299, 299))
-    img = img.astype(np.float32) 
-    img = img[:, :, (2, 1, 0)]
+    
+
+    sys.exit()
+   
     # calculate the gradient and the label index
     gradients, label_index = calculate_outputs_and_gradients([img], model, None, args.cuda)
     gradients = np.transpose(gradients[0], (1, 2, 0))
