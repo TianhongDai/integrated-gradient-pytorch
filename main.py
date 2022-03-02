@@ -28,6 +28,7 @@ parser = argparse.ArgumentParser(description='integrated-gradients')
 parser.add_argument('--cuda', action='store_true', help='if use the cuda to do the accelartion')
 parser.add_argument('--model-type', type=str, default='example', help='the type of network')
 parser.add_argument('--img', type=str, default='mnist784_ref', help='the images name')
+#parser.add_argument('--img', type=str, default='01.jpg', help='the images name')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -79,8 +80,11 @@ if __name__ == '__main__':
         data_module.setup()
 
         dataset = data_module.fulldataset
-        print(dataset[1][0])
-        save_image(dataset[1][0], "salida.png")
+        img = dataset[1][0]
+        imgnp = img.numpy()
+        #img = np.transpose(img.numpy(), (1,2,0))
+        print(img.shape)
+        #save_image(dataset[1][0], "salida.png")
         print("Salida con éxito")
 
     else :
@@ -91,24 +95,24 @@ if __name__ == '__main__':
             img = cv2.resize(img, (299, 299))
         img = img.astype(np.float32) 
         img = img[:, :, (2, 1, 0)]
- 
+
+        print(img.shape)
+
         print("Salida fracaso.")
     
-    sys.exit()
-
+    #sys.exit()
     if args.cuda:
         model.cuda()
         
-    
-    
+      
+    # calculate the gradient and the label index
+    gradients, label_index = calculate_outputs_and_gradients([img], model, None, args.cuda, args.model_type != 'example')
+    gradients = np.transpose(gradients[0], (1, 2, 0))
+    img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True)
+    img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
 
     sys.exit()
-   
-    # calculate the gradient and the label index
-    gradients, label_index = calculate_outputs_and_gradients([img], model, None, args.cuda)
-    gradients = np.transpose(gradients[0], (1, 2, 0))
-    img_gradient_overlay = visualize(gradients, img, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True)
-    img_gradient = visualize(gradients, img, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
+
 
     # calculae the integrated gradients 
     attributions = random_baseline_integrated_gradients(img, model, label_index, calculate_outputs_and_gradients, \
