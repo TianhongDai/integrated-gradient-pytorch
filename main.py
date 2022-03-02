@@ -86,7 +86,8 @@ if __name__ == '__main__':
         if(imgnp.shape[2] == 1):
             imgnp = np.squeeze(imgnp)
             imgnp = cv2.merge((imgnp, imgnp, imgnp))
-      
+        imgnp = cv2.normalize(imgnp, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        
         #img = np.transpose(img.numpy(), (1,2,0))
         print(imgnp.shape)
         #save_image(dataset[1][0], "salida.png")
@@ -121,6 +122,7 @@ if __name__ == '__main__':
     attributions = random_baseline_integrated_gradients(img, model, label_index, calculate_outputs_and_gradients, \
                                                         steps=50, num_random_trials=1, cuda=args.cuda, normalize = args.model_type != 'example')
   
+    
     img_integrated_gradient_overlay = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, \
                                                 overlay=True, mask_mode=True)
  
