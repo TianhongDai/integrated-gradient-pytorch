@@ -82,8 +82,13 @@ if __name__ == '__main__':
         dataset = data_module.fulldataset
         img = dataset[1][0]
         imgnp = img.numpy()
+        imgnp = np.transpose(imgnp, (1,2,0))
+        if(imgnp.shape[2] == 1):
+            imgnp = np.squeeze(imgnp)
+            imgnp = cv2.merge((imgnp, imgnp, imgnp))
+      
         #img = np.transpose(img.numpy(), (1,2,0))
-        print(img.shape)
+        print(imgnp.shape)
         #save_image(dataset[1][0], "salida.png")
         print("Salida con éxito")
 
@@ -111,17 +116,28 @@ if __name__ == '__main__':
     img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True)
     img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
 
-    sys.exit()
-
-
+   
     # calculae the integrated gradients 
     attributions = random_baseline_integrated_gradients(img, model, label_index, calculate_outputs_and_gradients, \
-                                                        steps=50, num_random_trials=10, cuda=args.cuda)
-    img_integrated_gradient_overlay = visualize(attributions, img, clip_above_percentile=99, clip_below_percentile=0, \
+                                                        steps=50, num_random_trials=1, cuda=args.cuda, normalize = args.model_type != 'example')
+  
+    img_integrated_gradient_overlay = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, \
                                                 overlay=True, mask_mode=True)
-    img_integrated_gradient = visualize(attributions, img, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
-    output_img = generate_entrie_images(img, img_gradient, img_gradient_overlay, img_integrated_gradient, \
+ 
+    img_integrated_gradient = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
+   
+    print(imgnp.shape)
+    print(img_gradient_overlay.shape)
+    print(img_gradient.shape)
+    print(img_integrated_gradient.shape)
+    print(img_integrated_gradient_overlay.shape)
+
+    output_img = generate_entrie_images(imgnp, img_gradient, img_gradient_overlay, img_integrated_gradient, \
                                         img_integrated_gradient_overlay)
-    cv2.imwrite('results/' + args.model_type + '/' + args.img, np.uint8(output_img))
+    if(args.model_type != 'example'):
+        cv2.imwrite('results/' + args.model_type + '/' + args.img, np.uint8(output_img))
+    else:
+        cv2.imwrite('results/' + args.model_type + '/salida.jpg', np.uint8(output_img))
+
 
     
