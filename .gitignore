@@ -113,6 +113,8 @@ venv.bak/
 
 *.log
 
+*.csv
+
 #directories
 /figures
 /results

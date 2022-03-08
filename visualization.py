@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 G = [0, 255, 0]
-R = [255, 0, 0]
+R = [0, 0, 255]
 
 def convert_to_gray_scale(attributions):
     return np.average(attributions, axis=2)
@@ -47,26 +47,75 @@ def visualize(attributions, image, positive_channel=G, negative_channel=R, polar
                 structure=np.ones((3, 3)), outlines=False, outlines_component_percentage=90, overlay=True, \
                 mask_mode=False, plot_distribution=False):
     if polarity == 'both':
-        raise NotImplementedError
+        #Primero los positivos
+        attributions1 = polarity_function(attributions, polarity='positive')
+        channel1 = G
+    
+        # convert the attributions to the gray scale
+        attributions1 = convert_to_gray_scale(attributions1)
+        attributions1 = linear_transform(attributions1, clip_above_percentile, clip_below_percentile, 0.0, plot_distribution=plot_distribution)
+        attributions_mask1 = attributions1.copy()
+        if morphological_cleanup:
+            raise NotImplementedError
+        if outlines:
+            raise NotImplementedError
+        attributions1 = np.expand_dims(attributions1, 2) * channel1
+        if overlay:
+            if mask_mode == False:
+                attributions1 = overlay_function(attributions1, image)
+            else:
+                attributions1 = np.expand_dims(attributions_mask1, 2)
+                attributions1 = np.clip(attributions1 * image, 0, 255)
+                attributions1 = attributions1[:, :, (2, 1, 0)]
+
+        #Segundo los negativos
+        attributions2 = polarity_function(attributions, polarity='negative')
+        attributions2 = np.abs(attributions2)
+        channel2 = R
+    
+        # convert the attributions to the gray scale
+        attributions2 = convert_to_gray_scale(attributions2)
+        attributions2 = linear_transform(attributions2, clip_above_percentile, clip_below_percentile, 0.0, plot_distribution=plot_distribution)
+        attributions_mask2 = attributions2.copy()
+        if morphological_cleanup:
+            raise NotImplementedError
+        if outlines:
+            raise NotImplementedError
+        attributions2 = np.expand_dims(attributions2, 2) * channel2
+        if overlay:
+            if mask_mode == False:
+                attributions2 = overlay_function(attributions2, image)
+            else:
+                attributions2 = np.expand_dims(attributions_mask2, 2)
+                attributions2 = np.clip(attributions2 * image, 0, 255)
+                attributions2 = attributions2[:, :, (2, 1, 0)]
+        
+        attributionsr = attributions1 + attributions2
+
 
     elif polarity == 'positive':
-        attributions = polarity_function(attributions, polarity=polarity)
-        channel = positive_channel
+        attributions1 = polarity_function(attributions, polarity='positive')
+        channel1 = G
     
-    # convert the attributions to the gray scale
-    attributions = convert_to_gray_scale(attributions)
-    attributions = linear_transform(attributions, clip_above_percentile, clip_below_percentile, 0.0, plot_distribution=plot_distribution)
-    attributions_mask = attributions.copy()
-    if morphological_cleanup:
+        # convert the attributions to the gray scale
+        attributions1 = convert_to_gray_scale(attributions1)
+        attributions1 = linear_transform(attributions1, clip_above_percentile, clip_below_percentile, 0.0, plot_distribution=plot_distribution)
+        attributions_mask1 = attributions1.copy()
+        if morphological_cleanup:
+            raise NotImplementedError
+        if outlines:
+            raise NotImplementedError
+        attributions1 = np.expand_dims(attributions1, 2) * channel1
+        if overlay:
+            if mask_mode == False:
+                attributions1 = overlay_function(attributions1, image)
+            else:
+                attributions1 = np.expand_dims(attributions_mask1, 2)
+                attributions1 = np.clip(attributions1 * image, 0, 255)
+                attributions1 = attributions1[:, :, (2, 1, 0)]
+        attributionsr = attributions1
+    else :
         raise NotImplementedError
-    if outlines:
-        raise NotImplementedError
-    attributions = np.expand_dims(attributions, 2) * channel
-    if overlay:
-        if mask_mode == False:
-            attributions = overlay_function(attributions, image)
-        else:
-            attributions = np.expand_dims(attributions_mask, 2)
-            attributions = np.clip(attributions * image, 0, 255)
-            attributions = attributions[:, :, (2, 1, 0)]
-    return attributions
+
+
+    return attributionsr

@@ -12,6 +12,8 @@ def calculate_outputs_and_gradients(inputs, model, target_label_idx, cuda=False,
         input = pre_processing(input, cuda, normalize)
 
         output = model(input)
+
+        print(output)
         #output = model(input[None, ...])
         
         if(normalize):

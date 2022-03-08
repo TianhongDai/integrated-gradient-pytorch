@@ -6,6 +6,12 @@ from utils import pre_processing
 def integrated_gradients(inputs, model, target_label_idx, predict_and_gradients, baseline, steps=50, cuda=False, normalize=False):
     if baseline is None:
         baseline = 0 * inputs 
+    
+    if normalize == False:
+        baseline = baseline + torch.min(inputs)
+
+    print("BASELINE")
+    print(baseline)
 
     # scale inputs and compute gradients
     scaled_inputs = [baseline + (float(i) / steps) * (inputs - baseline) for i in range(0, steps + 1)]
@@ -23,9 +29,11 @@ def random_baseline_integrated_gradients(inputs, model, target_label_idx, predic
     # Si baseline es None, num_random_trials debería ser 1
 
     for i in range(num_random_trials):
-        if(num_random_trials == 1 or normalize == False):
+        if(num_random_trials == 1):
             baseline = None
             num_random_trials = 1
+        elif(normalize == False):
+            baseline = (torch.max(inputs) - torch.min(inputs)) *np.random.random(inputs.shape) + torch.min(inputs)
         else:
             baseline=255.0 *np.random.random(inputs.shape)
         integrated_grad = integrated_gradients(inputs, model, target_label_idx, predict_and_gradients, \

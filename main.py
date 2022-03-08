@@ -114,8 +114,8 @@ if __name__ == '__main__':
     # calculate the gradient and the label index
     gradients, label_index = calculate_outputs_and_gradients([img], model, None, args.cuda, args.model_type != 'example')
     gradients = np.transpose(gradients[0], (1, 2, 0))
-    img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True)
-    img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
+    img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True, polarity='both')
+    img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity='both')
 
    
     # calculae the integrated gradients 
@@ -124,9 +124,9 @@ if __name__ == '__main__':
   
     
     img_integrated_gradient_overlay = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, \
-                                                overlay=True, mask_mode=True)
+                                                overlay=True, mask_mode=True, polarity='both')
  
-    img_integrated_gradient = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False)
+    img_integrated_gradient = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity='both')
    
     print(imgnp.shape)
     print(img_gradient_overlay.shape)
