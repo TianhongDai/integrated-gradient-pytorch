@@ -10,10 +10,14 @@ def convert_to_gray_scale(attributions):
 def linear_transform(attributions, clip_above_percentile=99.9, clip_below_percentile=70.0, low=0.2, plot_distribution=False):
     m = compute_threshold_by_top_percentage(attributions, percentage=100-clip_above_percentile, plot_distribution=plot_distribution)
     e = compute_threshold_by_top_percentage(attributions, percentage=100-clip_below_percentile, plot_distribution=plot_distribution)
-    transformed = (1 - low) * (np.abs(attributions) - e) / (m - e) + low
-    transformed *= np.sign(attributions)
-    transformed *= (transformed >= low)
-    transformed = np.clip(transformed, 0.0, 1.0)
+    if(m == e):
+        transformed = attributions
+    else:
+        transformed = (1 - low) * (np.abs(attributions) - e) / (m - e) + low
+        transformed *= np.sign(attributions)
+        transformed *= (transformed >= low)
+        transformed = np.clip(transformed, 0.0, 1.0)
+    
     return transformed
 
 def compute_threshold_by_top_percentage(attributions, percentage=60, plot_distribution=True):
@@ -23,12 +27,17 @@ def compute_threshold_by_top_percentage(attributions, percentage=60, plot_distri
         return np.min(attributions)
     flat_attributions = attributions.flatten()
     attribution_sum = np.sum(flat_attributions)
-    sorted_attributions = np.sort(np.abs(flat_attributions))[::-1]
-    cum_sum = 100.0 * np.cumsum(sorted_attributions) / attribution_sum
-    threshold_idx = np.where(cum_sum >= percentage)[0][0]
-    threshold = sorted_attributions[threshold_idx]
-    if plot_distribution:
-        raise NotImplementedError 
+    if(attribution_sum == 0):
+        threshold = 0
+    else:
+        sorted_attributions = np.sort(np.abs(flat_attributions))[::-1]
+ 
+        cum_sum = 100.0 * np.cumsum(sorted_attributions) / attribution_sum
+        threshold_idx = np.where(cum_sum >= percentage)[0][0]
+        threshold = sorted_attributions[threshold_idx]
+        if plot_distribution:
+            raise NotImplementedError 
+    
     return threshold
 
 def polarity_function(attributions, polarity):

@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.preprocessing import Normalizer
 import torch
 from torchvision import models
 from torchvision.utils import save_image
@@ -15,7 +16,11 @@ import matplotlib.pyplot as plt
 from lit_regressor import LitRegressor
 from config import CONFIG, Dataset,TargetModel
 from datamodule import DataModule
+import pandas as pd
 # from torchsummary import summary
+
+#NÚMERO DE IMÁGENES
+num_images = 1000
 
 # sys.path.append("/content/adversarial_project/integrated-gradient-pytorch") #to work in colab
 directorio = os.path.join(Path.home(), "integrated-gradient-pytorch")
@@ -30,6 +35,43 @@ parser.add_argument('--model-type', type=str, default='example', help='the type 
 parser.add_argument('--img', type=str, default='mnist784_ref', help='the images name')
 #parser.add_argument('--img', type=str, default='01.jpg', help='the images name')
 
+#La función que lee el csv con las dificultades
+def lee_csv(x):
+    return pd.read_csv(x)
+
+#La función que calcula el gradiente y el gradiente integrado
+def calculate_gradient_and_integrated_gradient(img, imgnp, model, cuda, normalize, polarity):
+    # calculate the gradient and the label index
+    gradients, label_index = calculate_outputs_and_gradients([img], model, None, cuda, normalize)
+    gradients = np.transpose(gradients[0], (1, 2, 0))
+    #print(gradients.shape)
+    #print(imgnp.shape)
+    img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True, polarity = polarity)
+    img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity='both')
+
+   
+    # calculae the integrated gradients 
+    attributions = random_baseline_integrated_gradients(img, model, label_index, calculate_outputs_and_gradients, \
+                                                        steps=50, num_random_trials=10, cuda=cuda, normalize = normalize)
+  
+    
+    img_integrated_gradient_overlay = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, \
+                                                overlay=True, mask_mode=True, polarity=polarity)
+ 
+    img_integrated_gradient = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity = polarity)
+   
+    #print(imgnp.shape)
+    #print(img_gradient_overlay.shape)
+    #print(img_gradient.shape)
+    #print(img_integrated_gradient.shape)
+    #print(img_integrated_gradient_overlay.shape)
+
+    output_img = generate_entrie_images(imgnp, img_gradient, img_gradient_overlay, img_integrated_gradient, \
+                                        img_integrated_gradient_overlay)
+    
+    return output_img, img_gradient, img_integrated_gradient
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     # check if have the space to save the results
@@ -37,7 +79,7 @@ if __name__ == '__main__':
         os.mkdir('results/')
     if not os.path.exists('results/' + args.model_type):
         os.mkdir('results/' + args.model_type)
-    
+
     # start to create models...
     if args.model_type == 'inception':
         model = models.inception_v3(pretrained=True)
@@ -80,16 +122,86 @@ if __name__ == '__main__':
         data_module.setup()
 
         dataset = data_module.fulldataset
-        img = dataset[1][0]
+
+       #load csv with difficulties
+        if(os.path.exists("results_to_Carlos.csv")):
+            datos = lee_csv("results_to_Carlos.csv")
+        else:
+            raise Exception("results_to_Carlos.csv does not exists")
+        
+        #Selección de imágenes fáciles
+        datos_faciles = datos.sort_values(by = ['results'])
+        datos_faciles = datos_faciles.loc[datos_faciles["results"] <= -4]
+        if(np.shape(datos_faciles)[0] > num_images):
+            datos_faciles = datos_faciles.sample(n=num_images)
+        else:
+            num_images = np.shape(datos_faciles)[0]
+        
+        datos_dificiles = datos.sort_values(by = ['results'], ascending = False)
+        datos_dificiles = datos_dificiles.loc[datos_dificiles["results"] >= 4]
+        if(np.shape(datos_dificiles)[0] > num_images):
+            datos_dificiles = datos_dificiles.sample(n=num_images)
+        else:
+            num_images = np.shape(datos_dificiles)[0]
+        #print(datos_faciles.head(5))
+        #print(datos_dificiles.head(5))
+
+
+        img = dataset[0][0]
         imgnp = img.numpy()
         imgnp = np.transpose(imgnp, (1,2,0))
         if(imgnp.shape[2] == 1):
             imgnp = np.squeeze(imgnp)
             imgnp = cv2.merge((imgnp, imgnp, imgnp))
         imgnp = cv2.normalize(imgnp, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+        acum_g = np.zeros(imgnp.shape)
+        acum_ig = np.zeros(imgnp.shape)
+
+        if args.cuda:
+            model.cuda()
+        j = 0
+
+        #HAY QUE COMENTAR LA SIGUIENTE LÍNEA SI SE QUIERE UTILIZAR datos_faciles
+        datos_faciles = datos_dificiles
+
+
+        #Muestra las etquetas seleccionadas y el valor límite de las etiquetas.
+        contador = np.zeros(10)
+        for etiqueta in datos_faciles.loc[:,"labels"]:
+            contador[etiqueta] = contador[etiqueta] + 1
+
+        print(contador)
+        np.savetxt('data.csv', contador, fmt="%d", delimiter=',')
+        print(np.sum(contador))
+
+        for imagen in datos_faciles.loc[:,"id_image"] :
+            j = j + 1
+            print('the image number: {}'.format(j))
+            img = dataset[imagen][0]
+            # print(len(dataset))
+            # print(img.shape)
+            # print(img)
+            # print(args.cuda)
+
+            imgnp = img.numpy()
+            imgnp = np.transpose(imgnp, (1,2,0))
+            if(imgnp.shape[2] == 1):
+                imgnp = np.squeeze(imgnp)
+                imgnp = cv2.merge((imgnp, imgnp, imgnp))
+            imgnp = cv2.normalize(imgnp, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+            salida, img_gradient, img_integrated_gradient = calculate_gradient_and_integrated_gradient(img=img, imgnp=imgnp, model=model, cuda=args.cuda, normalize=(args.model_type != 'example'), polarity='both')
+            acum_g = acum_g + img_gradient
+            acum_ig = acum_ig + img_integrated_gradient
         
+        acum_g = acum_g / num_images
+        acum_ig = acum_ig / num_images
+        cv2.imwrite('results/' + args.model_type + '/acum_g.jpg', cv2.resize(np.uint8(acum_g), (300, 300)))
+        cv2.imwrite('results/' + args.model_type + '/acum_ig.jpg', cv2.resize(np.uint8(acum_ig), (300, 300)))
+        cv2.imwrite('results/' + args.model_type + '/salida.jpg', np.uint8(salida))
+
         #img = np.transpose(img.numpy(), (1,2,0))
-        print(imgnp.shape)
+        #print(img.shape)
+        #print(imgnp.shape)
         #save_image(dataset[1][0], "salida.png")
         print("Salida con éxito")
 
@@ -101,45 +213,16 @@ if __name__ == '__main__':
             img = cv2.resize(img, (299, 299))
         img = img.astype(np.float32) 
         img = img[:, :, (2, 1, 0)]
+        imgnp = img
 
-        print(img.shape)
+        if args.cuda:
+           model.cuda()
+
+        salida, img_gradient, img_integrated_gradient = calculate_gradient_and_integrated_gradient(img=img, imgnp=imgnp, model=model, cuda=args.cuda, normalize=(args.model_type != 'example'), polarity='positive')
+        cv2.imwrite('results/' + args.model_type + '/' + args.img, np.uint8(salida))
+ 
+        #print(img.shape)
 
         print("Salida fracaso.")
     
-    #sys.exit()
-    if args.cuda:
-        model.cuda()
-        
-      
-    # calculate the gradient and the label index
-    gradients, label_index = calculate_outputs_and_gradients([img], model, None, args.cuda, args.model_type != 'example')
-    gradients = np.transpose(gradients[0], (1, 2, 0))
-    img_gradient_overlay = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=True, mask_mode=True, polarity='both')
-    img_gradient = visualize(gradients, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity='both')
-
-   
-    # calculae the integrated gradients 
-    attributions = random_baseline_integrated_gradients(img, model, label_index, calculate_outputs_and_gradients, \
-                                                        steps=50, num_random_trials=1, cuda=args.cuda, normalize = args.model_type != 'example')
-  
-    
-    img_integrated_gradient_overlay = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, \
-                                                overlay=True, mask_mode=True, polarity='both')
- 
-    img_integrated_gradient = visualize(attributions, imgnp, clip_above_percentile=99, clip_below_percentile=0, overlay=False, polarity='both')
-   
-    print(imgnp.shape)
-    print(img_gradient_overlay.shape)
-    print(img_gradient.shape)
-    print(img_integrated_gradient.shape)
-    print(img_integrated_gradient_overlay.shape)
-
-    output_img = generate_entrie_images(imgnp, img_gradient, img_gradient_overlay, img_integrated_gradient, \
-                                        img_integrated_gradient_overlay)
-    if(args.model_type != 'example'):
-        cv2.imwrite('results/' + args.model_type + '/' + args.img, np.uint8(output_img))
-    else:
-        cv2.imwrite('results/' + args.model_type + '/salida.jpg', np.uint8(output_img))
-
-
     

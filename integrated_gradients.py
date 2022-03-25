@@ -10,8 +10,8 @@ def integrated_gradients(inputs, model, target_label_idx, predict_and_gradients,
     if normalize == False:
         baseline = baseline + torch.min(inputs)
 
-    print("BASELINE")
-    print(baseline)
+    #print("BASELINE")
+    #print(baseline)
 
     # scale inputs and compute gradients
     scaled_inputs = [baseline + (float(i) / steps) * (inputs - baseline) for i in range(0, steps + 1)]

@@ -13,7 +13,7 @@ def calculate_outputs_and_gradients(inputs, model, target_label_idx, cuda=False,
 
         output = model(input)
 
-        print(output)
+        #print(output)
         #output = model(input[None, ...])
         
         if(normalize):
